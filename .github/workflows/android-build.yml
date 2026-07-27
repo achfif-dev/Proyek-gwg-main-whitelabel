@@ -58,6 +58,51 @@ jobs:
       - name: Build web app (Vite)
         run: npm run build
 
+      - name: Baca App ID & Nama App dari .env (white label)
+        id: appconfig
+        run: |
+          APP_ID=$(grep -E '^VITE_APP_ID=' .env | head -n1 | cut -d '=' -f2-)
+          APP_NAME=$(grep -E '^VITE_APP_SHORT_NAME=' .env | head -n1 | cut -d '=' -f2-)
+          if [ -z "$APP_ID" ]; then APP_ID="com.gwg.superapp"; fi
+          if [ -z "$APP_NAME" ]; then APP_NAME="GWG Super App"; fi
+          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
+          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Generate capacitor.config.json dari .env (white label)
+        # ✅ FIX: capacitor.config.js (ESM) & capacitor.config.cjs SAMA-SAMA
+        # bermasalah di Capacitor CLI — .js ber-"export default" salah
+        # dibungkus jadi {default: {...}} oleh CLI (bug resmi belum
+        # diperbaiki, lihat github.com/ionic-team/capacitor/issues/8267),
+        # dan .cjs bahkan TIDAK ADA di daftar nama file yang dicari CLI
+        # (cuma .ts → .js → .json). .json murni tidak punya masalah ini sama
+        # sekali, jadi file-nya ditulis ulang di sini dari .env sebelum
+        # dipakai — appId/appName tetap ikut white-label tanpa perlu
+        # TypeScript atau berurusan dengan ESM/CJS.
+        run: |
+          cat > capacitor.config.json << EOF
+          {
+            "appId": "${{ steps.appconfig.outputs.app_id }}",
+            "appName": "${{ steps.appconfig.outputs.app_name }}",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https"
+            },
+            "android": {
+              "allowMixedContent": false
+            },
+            "plugins": {
+              "FirebaseAuthentication": {
+                "skipNativeAuth": false,
+                "providers": ["google.com"]
+              },
+              "CapacitorHttp": {
+                "enabled": false
+              }
+            }
+          }
+          EOF
+          echo "capacitor.config.json → appId=${{ steps.appconfig.outputs.app_id }}, appName=${{ steps.appconfig.outputs.app_name }}"
+
       - name: Tambahkan platform Android (Capacitor)
         run: |
           if [ ! -d "android" ]; then
@@ -85,13 +130,6 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
-
-      - name: Baca App ID dari .env (white label)
-        id: appconfig
-        run: |
-          APP_ID=$(grep -E '^VITE_APP_ID=' .env | head -n1 | cut -d '=' -f2-)
-          if [ -z "$APP_ID" ]; then APP_ID="com.gwg.superapp"; fi
-          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
 
       - name: Jalankan app di emulator & tangkap log error
         uses: reactivecircus/android-emulator-runner@v2
@@ -142,4 +180,3 @@ jobs:
         with:
           name: gwg-superapp-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
