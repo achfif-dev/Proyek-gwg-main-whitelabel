@@ -15,6 +15,26 @@ import { GWG_LOGO_B64 } from "../theme/logo";
 
 const STORAGE_KEY = "gw_app_config";
 
+// ✅ FIX: kredensial Firebase GWG SEBELUMNYA tertanam permanen sebagai
+// fallback di kode JS (bukan cuma placeholder) — akibatnya wizard TIDAK
+// PERNAH otomatis muncul untuk fork/instance manapun, termasuk instance
+// perusahaan lain yang belum sempat mengisi Firebase sendiri (mereka diam-
+// diam akan terhubung ke database GWG tanpa disadari). Sekarang kredensial
+// bawaan dipindah ke variabel .env (VITE_FIREBASE_*, dibaca saat BUILD) —
+// instance GWG yang sudah berjalan tetap jalan normal (nilainya sudah ada
+// di .env), tapi fork baru yang BELUM mengisi .env-nya akan benar-benar
+// kosong, sehingga isFirebaseConfigured() = false dan Setup Wizard otomatis
+// tampil di login, seperti mestinya.
+const _envFirebase = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+};
+
 const DEFAULT_CONFIG = {
   brand: {
     companyName: "Generasi Wangi Group",
@@ -25,20 +45,13 @@ const DEFAULT_CONFIG = {
     primaryColor: "#0F4C35", // dipetakan ke T.green
     accentColor: "#C49A1A",  // dipetakan ke T.gold
   },
-  firebase: {
-    apiKey: "AIzaSyBBAWDbCtCde8mgRgASZ7nl36bfEwZaPM4",
-    authDomain: "proyek-gwg.firebaseapp.com",
-    databaseURL: "https://proyek-gwg-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "proyek-gwg",
-    storageBucket: "proyek-gwg.firebasestorage.app",
-    messagingSenderId: "481668966064",
-    appId: "1:481668966064:web:8b1bbc7a1c1eac71bb3d75",
-  },
+  // Kosong kalau .env belum diisi VITE_FIREBASE_* — lihat komentar di atas.
+  firebase: _envFirebase,
   // Email akun Google yang otomatis mendapat akses Admin penuh kapan pun
   // login, apa pun yang tercatat di tabel Pengguna (lihat isSuperAdminEmail
   // di src/config/superAdmin.js). Kosong = tidak ada Super Admin khusus
   // (mengandalkan mekanisme "akun pertama yang login otomatis jadi Admin").
-  superAdminEmail: "achfif@gmail.com",
+  superAdminEmail: import.meta.env.VITE_SUPER_ADMIN_EMAIL || "",
   // Sudah pernah menyelesaikan Setup Wizard setidaknya sekali di perangkat
   // ini — dipakai supaya wizard tidak otomatis muncul lagi tiap refresh
   // kalau memang sengaja tidak mau mengisi Firebase (mis. mode demo).
@@ -83,7 +96,7 @@ export function resetAppConfig() {
 }
 
 export function isFirebaseConfigured(cfg = loadAppConfig()) {
-  return !!cfg.firebase.apiKey && !cfg.firebase.apiKey.includes("XXXXX");
+  return !!cfg.firebase.apiKey;
 }
 
 export function getBrandLogo(cfg = loadAppConfig()) {

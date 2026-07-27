@@ -23,6 +23,8 @@ Ada 3 lapis pengaturan. Kerjakan **berurutan dari atas ke bawah**:
 3. Buka **⚙️ Project Settings → General → Your apps → Add app → Web (</>)** → beri nickname → **Register app**.
 4. Salin blok kode `firebaseConfig` yang muncul (isinya `apiKey`, `authDomain`, `databaseURL`, dst) — Anda akan tempel ini di Langkah 2. **Jangan tutup dulu halaman ini.**
 
+> ⚠️ **Kalau Anda fork repo ini**: buka file `.env` di root project, cari bagian **"Firebase & Super Admin bawaan"**, lalu **hapus/kosongkan** nilai `VITE_FIREBASE_*` dan `VITE_SUPER_ADMIN_EMAIL` di sana (nilai itu kredensial Firebase GWG, bukan milik Anda). Kalau dibiarkan terisi, Setup Wizard **tidak akan muncul otomatis** dan aplikasi akan diam-diam tersambung ke database GWG.
+
 ---
 
 ## 🚀 Langkah 2 — Setup Wizard (di dalam aplikasi)
